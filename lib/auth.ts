@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
 
-export const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+export const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
 const loginSchema = z.object({
   email: z.string().email(),
