@@ -5,6 +5,8 @@ import bcrypt from "bcryptjs"
 import { z } from "zod"
 
 export const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+export const ADMIN_EMAILS = ADMIN_EMAIL?.split(",").map((e) => e.trim());
+
 
 const loginSchema = z.object({
   email: z.string().email(),

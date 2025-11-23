@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ADMIN_EMAIL } from "@/lib/auth";
+import { ADMIN_EMAIL, ADMIN_EMAILS } from "@/lib/auth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +35,7 @@ export function Nav({ user }: NavProps) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
 
-  const isAdmin = user.email === ADMIN_EMAIL;
+  const isAdmin = ADMIN_EMAILS?.includes(user.email || "");
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -55,7 +55,9 @@ export function Nav({ user }: NavProps) {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
               FM
             </div>
-            <span className="hidden text-lg font-bold sm:inline">Finance Manager</span>
+            <span className="hidden text-lg font-bold sm:inline">
+              Finance Manager
+            </span>
           </Link>
 
           {/* Desktop navigation */}
@@ -99,7 +101,10 @@ export function Nav({ user }: NavProps) {
                       asChild
                       className={isActive ? "font-semibold" : ""}
                     >
-                      <Link href={item.href} className="flex items-center gap-2">
+                      <Link
+                        href={item.href}
+                        className="flex items-center gap-2"
+                      >
                         <Icon className="h-4 w-4" />
                         {item.label}
                       </Link>

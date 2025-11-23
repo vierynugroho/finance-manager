@@ -3,10 +3,17 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { ADMIN_EMAIL } from "@/lib/auth";
+import { ADMIN_EMAIL, ADMIN_EMAILS } from "@/lib/auth";
 import { Nav } from "@/components/nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
 interface AdminUserSummary {
@@ -38,7 +45,11 @@ export default function AdminPage() {
   useEffect(() => {
     if (status === "loading") return;
 
-    if (!session?.user || session.user.email !== ADMIN_EMAIL) {
+    if (
+      !session?.user ||
+      !session.user.email ||
+      !ADMIN_EMAILS?.includes(session.user.email)
+    ) {
       router.replace("/dashboard");
       return;
     }
@@ -59,7 +70,11 @@ export default function AdminPage() {
     load();
   }, [session, status, router]);
 
-  if (!session?.user || session.user.email !== ADMIN_EMAIL) {
+  if (
+    !session?.user ||
+    !session.user.email ||
+    (ADMIN_EMAILS && !ADMIN_EMAILS.includes(session.user.email))
+  ) {
     return null;
   }
 
@@ -109,7 +124,9 @@ export default function AdminPage() {
 
                     return (
                       <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell className="font-medium">
+                          {user.name}
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {user.email}
                         </TableCell>

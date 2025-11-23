@@ -17,6 +17,7 @@ model User {
   password  String
   image     String?
   currency  String   @default("IDR")
+  monthlyEmailEnabled Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

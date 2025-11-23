@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth, ADMIN_EMAIL } from "@/lib/auth"
+import { auth, ADMIN_EMAIL, ADMIN_EMAILS } from "@/lib/auth";
 import { prisma } from "@/lib/prisma"
 
 export async function GET(req: NextRequest) {
   try {
     const session = await auth()
 
-    if (!session?.user || session.user.email !== ADMIN_EMAIL) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (
+      !session?.user ||
+      ADMIN_EMAILS?.includes(session.user.email || "") === false
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const users = await prisma.user.findMany({
