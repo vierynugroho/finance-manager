@@ -143,7 +143,7 @@ export default function CategoriesPage() {
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto cursor-pointer">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Category
               </Button>
@@ -195,7 +195,7 @@ export default function CategoriesPage() {
                     ))}
                   </div>
                 </div>
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full cursor-pointer">
                   Add Category
                 </Button>
               </form>
@@ -207,31 +207,34 @@ export default function CategoriesPage() {
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="flex flex-wrap gap-2">
             <Button
+              className="cursor-pointer"
               size="sm"
               variant={typeFilter === "all" ? "default" : "outline"}
               onClick={() => {
-                setTypeFilter("all")
-                setPage(1)
+                setTypeFilter("all");
+                setPage(1);
               }}
             >
               All
             </Button>
             <Button
+              className="cursor-pointer"
               size="sm"
               variant={typeFilter === "INCOME" ? "default" : "outline"}
               onClick={() => {
-                setTypeFilter("INCOME")
-                setPage(1)
+                setTypeFilter("INCOME");
+                setPage(1);
               }}
             >
               Income
             </Button>
             <Button
+              className="cursor-pointer"
               size="sm"
               variant={typeFilter === "EXPENSE" ? "default" : "outline"}
               onClick={() => {
-                setTypeFilter("EXPENSE")
-                setPage(1)
+                setTypeFilter("EXPENSE");
+                setPage(1);
               }}
             >
               Expenses
@@ -244,16 +247,16 @@ export default function CategoriesPage() {
               placeholder="Search category name"
               value={search}
               onChange={(e) => {
-                setSearch(e.target.value)
-                setPage(1)
+                setSearch(e.target.value);
+                setPage(1);
               }}
-              className="w-full md:w-64"
+              className="w-full md:w-64 cursor-pointer"
             />
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 cursor-pointer"
               onClick={handleExport}
             >
               <Download className="h-4 w-4" /> Export CSV
@@ -291,6 +294,7 @@ export default function CategoriesPage() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="cursor-pointer"
                           onClick={() => handleDelete(category.id)}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -333,6 +337,7 @@ export default function CategoriesPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(category.id)}
+                          className="cursor-pointer"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -358,6 +363,7 @@ export default function CategoriesPage() {
             <Button
               variant="outline"
               size="sm"
+              className="cursor-pointer"
               disabled={currentPage === 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
@@ -366,6 +372,7 @@ export default function CategoriesPage() {
             <Button
               variant="outline"
               size="sm"
+              className="cursor-pointer"
               disabled={currentPage === totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             >
@@ -375,5 +382,5 @@ export default function CategoriesPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }

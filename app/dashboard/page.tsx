@@ -193,6 +193,7 @@ export default function DashboardPage() {
                     <span className="text-sm font-medium">Period:</span>
                     <Button
                       size="sm"
+                      className="cursor-pointer"
                       variant={period === "month" ? "default" : "outline"}
                       onClick={() => {
                         setPeriod("month");
@@ -208,6 +209,7 @@ export default function DashboardPage() {
                     </Button>
                     <Button
                       size="sm"
+                      className="cursor-pointer"
                       variant={period === "year" ? "default" : "outline"}
                       onClick={() => {
                         setPeriod("year");
@@ -230,6 +232,7 @@ export default function DashboardPage() {
                     </p>
                     <div className="flex gap-2">
                       <Input
+                        className="cursor-pointer"
                         type="date"
                         value={formatDateInput(startDate)}
                         onChange={(e) => {
@@ -238,6 +241,7 @@ export default function DashboardPage() {
                         }}
                       />
                       <Input
+                        className="cursor-pointer"
                         type="date"
                         value={formatDateInput(endDate)}
                         onChange={(e) => {
@@ -252,6 +256,7 @@ export default function DashboardPage() {
                       Specific month
                     </p>
                     <Input
+                      className="cursor-pointer"
                       type="month"
                       value={monthFilter}
                       onChange={(e) => applyMonthFilter(e.target.value)}
@@ -262,6 +267,7 @@ export default function DashboardPage() {
                       Specific date
                     </p>
                     <Input
+                      className="cursor-pointer"
                       type="date"
                       value={singleDate}
                       onChange={(e) => applySingleDateFilter(e.target.value)}
@@ -297,23 +303,31 @@ export default function DashboardPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               {/* Monthly Trend */}
-              <Card className="col-span-2 lg:col-span-1">
+              <Card className="col-span-full lg:col-span-1">
                 <CardHeader>
-                  <CardTitle>Monthly Trend (Last 6 Months)</CardTitle>
+                  <CardTitle className="text-base sm:text-lg">
+                    Monthly Trend (Last 6 Months)
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-2 sm:px-6">
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart
                       data={stats.monthlyTrend}
-                      margin={{ top: 16, right: 24, bottom: 24, left: 48 }}
+                      margin={{ top: 16, right: 8, bottom: 24, left: 0 }}
                     >
                       <CartesianGrid
                         strokeDasharray="3 3"
                         className="stroke-muted"
                       />
-                      <XAxis dataKey="month" className="text-xs" />
+                      <XAxis
+                        dataKey="month"
+                        className="text-xs"
+                        tick={{ fontSize: 11 }}
+                      />
                       <YAxis
                         className="text-xs"
+                        tick={{ fontSize: 11 }}
+                        width={45}
                         tickFormatter={(value: number) =>
                           new Intl.NumberFormat(undefined, {
                             notation: "compact",
@@ -327,15 +341,20 @@ export default function DashboardPage() {
                           backgroundColor: "hsl(var(--background))",
                           border: "1px solid hsl(var(--border))",
                           borderRadius: "8px",
+                          fontSize: "12px",
                         }}
                       />
-                      <Legend />
+                      <Legend
+                        wrapperStyle={{ fontSize: "12px" }}
+                        iconSize={12}
+                      />
                       <Line
                         type="monotone"
                         dataKey="income"
                         stroke="#10b981"
                         strokeWidth={2}
                         name="Income"
+                        dot={{ r: 3 }}
                       />
                       <Line
                         type="monotone"
@@ -343,6 +362,7 @@ export default function DashboardPage() {
                         stroke="#ef4444"
                         strokeWidth={2}
                         name="Expense"
+                        dot={{ r: 3 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -350,11 +370,13 @@ export default function DashboardPage() {
               </Card>
 
               {/* Expenses by Category */}
-              <Card>
+              <Card className="col-span-full lg:col-span-1">
                 <CardHeader>
-                  <CardTitle>Expenses by Category</CardTitle>
+                  <CardTitle className="text-base sm:text-lg">
+                    Expenses by Category
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-2 sm:px-6">
                   {stats.expensesByCategory.length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
                       <PieChart>
@@ -364,10 +386,13 @@ export default function DashboardPage() {
                           nameKey="category"
                           cx="50%"
                           cy="50%"
-                          outerRadius={100}
+                          outerRadius={80}
+                          innerRadius={40}
                           label={({ name, percent }) =>
                             `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
                           }
+                          labelLine={false}
+                          style={{ fontSize: "11px" }}
                         >
                           {stats.expensesByCategory.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
@@ -379,12 +404,13 @@ export default function DashboardPage() {
                             backgroundColor: "hsl(var(--background))",
                             border: "1px solid hsl(var(--border))",
                             borderRadius: "8px",
+                            fontSize: "12px",
                           }}
                         />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="text-center py-12 text-muted-foreground">
+                    <div className="text-center py-12 text-muted-foreground text-sm">
                       No expense data yet
                     </div>
                   )}
@@ -490,6 +516,7 @@ export default function DashboardPage() {
                       </p>
                       <div className="flex gap-2 justify-end">
                         <Button
+                          className="cursor-pointer"
                           size="sm"
                           variant="outline"
                           disabled={stats.recentPagination.page <= 1}
@@ -500,6 +527,7 @@ export default function DashboardPage() {
                           Previous
                         </Button>
                         <Button
+                          className="cursor-pointer"
                           size="sm"
                           variant="outline"
                           disabled={

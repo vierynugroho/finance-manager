@@ -265,14 +265,18 @@ export default function TransactionsPage() {
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <Button variant="outline" onClick={handleExport}>
+            <Button
+              variant="outline"
+              onClick={handleExport}
+              className="cursor-pointer"
+            >
               Export Excel
             </Button>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button
                   onClick={() => setEditingId(null)}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto cursor-pointer"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Add Transaction
@@ -391,7 +395,7 @@ export default function TransactionsPage() {
                       }
                     />
                   </div>
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="w-full cursor-pointer">
                     {editingId ? "Update" : "Add"} Transaction
                   </Button>
                 </form>
@@ -425,6 +429,7 @@ export default function TransactionsPage() {
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="flex flex-wrap gap-2">
             <Button
+              className="cursor-pointer"
               size="sm"
               variant={filterType === "all" ? "default" : "outline"}
               onClick={() => {
@@ -435,6 +440,7 @@ export default function TransactionsPage() {
               All
             </Button>
             <Button
+              className="cursor-pointer"
               size="sm"
               variant={filterType === "INCOME" ? "default" : "outline"}
               onClick={() => {
@@ -445,6 +451,7 @@ export default function TransactionsPage() {
               Income
             </Button>
             <Button
+              className="cursor-pointer"
               size="sm"
               variant={filterType === "EXPENSE" ? "default" : "outline"}
               onClick={() => {
@@ -567,6 +574,7 @@ export default function TransactionsPage() {
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
                             <Button
+                              className="cursor-pointer"
                               variant="ghost"
                               size="icon"
                               aria-label="Edit transaction"
@@ -582,6 +590,7 @@ export default function TransactionsPage() {
                               size="icon"
                               aria-label="Delete transaction"
                               onClick={() => handleDelete(transaction.id)}
+                              className="cursor-pointer"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -629,6 +638,7 @@ export default function TransactionsPage() {
                   </div>
                   <div className="flex gap-2 justify-end">
                     <Button
+                      className="cursor-pointer"
                       size="sm"
                       variant="outline"
                       disabled={!pagination || pagination.page <= 1}
@@ -637,6 +647,7 @@ export default function TransactionsPage() {
                       Previous
                     </Button>
                     <Button
+                      className="cursor-pointer"
                       size="sm"
                       variant="outline"
                       disabled={
