@@ -43,7 +43,7 @@ export function Nav({ user }: NavProps) {
     { href: "/categories", label: "Categories", icon: Tag },
     { href: "/settings", label: "Settings", icon: Settings },
     ...(isAdmin
-      ? [{ href: "/admin", label: "Admin", icon: LayoutDashboard as const }]
+      ? [{ href: "/admin", label: "Admin", icon: LayoutDashboard }]
       : []),
   ];
 
