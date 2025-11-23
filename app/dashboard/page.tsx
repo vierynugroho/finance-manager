@@ -7,6 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCurrency } from "@/lib/use-currency";
 import {
   TrendingUp,
@@ -81,10 +88,11 @@ export default function DashboardPage() {
   const [monthFilter, setMonthFilter] = useState<string>("");
   const [singleDate, setSingleDate] = useState<string>("");
   const [recentPage, setRecentPage] = useState<number>(1);
+  const [recentLimit, setRecentLimit] = useState<number>(5);
 
   useEffect(() => {
     fetchStats();
-  }, [period, startDate, endDate, recentPage]);
+  }, [period, startDate, endDate, recentPage, recentLimit]);
 
   const applyMonthFilter = (value: string) => {
     setMonthFilter(value);
@@ -130,7 +138,7 @@ export default function DashboardPage() {
         params.append("endDate", new Date(endDate).toISOString());
       }
       params.append("recentPage", String(recentPage));
-      params.append("recentLimit", "5");
+      params.append("recentLimit", String(recentLimit));
 
       const res = await fetch(`/api/stats?${params.toString()}`);
       if (res.ok) {
@@ -188,6 +196,11 @@ export default function DashboardPage() {
                       variant={period === "month" ? "default" : "outline"}
                       onClick={() => {
                         setPeriod("month");
+                        // reset custom range & specific date/month
+                        setStartDate("");
+                        setEndDate("");
+                        setMonthFilter("");
+                        setSingleDate("");
                         setRecentPage(1);
                       }}
                     >
@@ -198,6 +211,11 @@ export default function DashboardPage() {
                       variant={period === "year" ? "default" : "outline"}
                       onClick={() => {
                         setPeriod("year");
+                        // reset custom range & specific date/month
+                        setStartDate("");
+                        setEndDate("");
+                        setMonthFilter("");
+                        setSingleDate("");
                         setRecentPage(1);
                       }}
                     >
@@ -249,6 +267,30 @@ export default function DashboardPage() {
                       onChange={(e) => applySingleDateFilter(e.target.value)}
                     />
                   </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Recent transactions per page
+                  </p>
+                  <Select
+                    value={String(recentLimit)}
+                    onValueChange={(value) => {
+                      const next = Number(value);
+                      setRecentLimit(next);
+                      setRecentPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-[80px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[5, 10, 15, 20, 25, 31].map((size) => (
+                        <SelectItem key={size} value={String(size)}>
+                          {size}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>
@@ -441,7 +483,8 @@ export default function DashboardPage() {
                     <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <p className="text-sm text-muted-foreground">
                         Page {stats.recentPagination.page} of{" "}
-                        {stats.recentPagination.totalPages}
+                        {stats.recentPagination.totalPages} · Limit{" "}
+                        {stats.recentPagination.limit}
                       </p>
                       <div className="flex gap-2 justify-end">
                         <Button

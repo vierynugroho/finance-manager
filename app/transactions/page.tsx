@@ -81,32 +81,35 @@ export default function TransactionsPage() {
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [amountInput, setAmountInput] = useState<string>("")
   const [page, setPage] = useState<number>(1);
+  const [limit, setLimit] = useState<number>(10);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [summary, setSummary] = useState<Summary>({ income: 0, expense: 0 });
 
   useEffect(() => {
     fetchTransactions();
-  }, [filterType, categoryFilter, dateFrom, dateTo, page]);
+  }, [filterType, categoryFilter, dateFrom, dateTo, page, limit]);
 
   useEffect(() => {
-    fetchCategories()
-  }, [])
+    fetchCategories();
+  }, []);
 
   const fetchTransactions = async () => {
     try {
-      setLoading(true)
-      const params = new URLSearchParams()
-      if (filterType !== "all") params.append("type", filterType)
-      if (categoryFilter !== "all" && categoryFilter) params.append("categoryId", categoryFilter)
-      if (dateFrom) params.append("startDate", new Date(dateFrom).toISOString())
-      if (dateTo) params.append("endDate", new Date(dateTo).toISOString())
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (filterType !== "all") params.append("type", filterType);
+      if (categoryFilter !== "all" && categoryFilter)
+        params.append("categoryId", categoryFilter);
+      if (dateFrom)
+        params.append("startDate", new Date(dateFrom).toISOString());
+      if (dateTo) params.append("endDate", new Date(dateTo).toISOString());
       params.append("page", page.toString());
-      params.append("limit", "10");
+      params.append("limit", String(limit));
 
-      const res = await fetch(`/api/transactions?${params}`)
+      const res = await fetch(`/api/transactions?${params}`);
       if (res.ok) {
-        const data = await res.json()
-        setTransactions(data.transactions)
+        const data = await res.json();
+        setTransactions(data.transactions);
         if (data.pagination) {
           setPagination(data.pagination);
         }
@@ -118,118 +121,119 @@ export default function TransactionsPage() {
         }
       }
     } catch (error) {
-      console.error("Failed to fetch transactions:", error)
+      console.error("Failed to fetch transactions:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch("/api/categories")
+      const res = await fetch("/api/categories");
       if (res.ok) {
-        const data = await res.json()
-        setCategories(data)
+        const data = await res.json();
+        setCategories(data);
       }
     } catch (error) {
-      console.error("Failed to fetch categories:", error)
+      console.error("Failed to fetch categories:", error);
     }
-  }
+  };
 
   const handleExport = async () => {
     try {
-      const params = new URLSearchParams()
-      if (filterType !== "all") params.append("type", filterType)
+      const params = new URLSearchParams();
+      if (filterType !== "all") params.append("type", filterType);
       if (categoryFilter !== "all" && categoryFilter)
-        params.append("categoryId", categoryFilter)
+        params.append("categoryId", categoryFilter);
       if (dateFrom)
-        params.append("startDate", new Date(dateFrom).toISOString())
-      if (dateTo)
-        params.append("endDate", new Date(dateTo).toISOString())
-      params.append("limit", "10000")
+        params.append("startDate", new Date(dateFrom).toISOString());
+      if (dateTo) params.append("endDate", new Date(dateTo).toISOString());
+      params.append("limit", "10000");
 
-      const res = await fetch(`/api/transactions?${params}`)
-      if (!res.ok) return
-      const data = await res.json()
+      const res = await fetch(`/api/transactions?${params}`);
+      if (!res.ok) return;
+      const data = await res.json();
       const rows = (data.transactions as Transaction[]).map((tx) => ({
         Date: format(new Date(tx.date), "yyyy-MM-dd HH:mm"),
         Description: tx.description || tx.category.name,
         Category: tx.category.name,
         Type: tx.type,
         Amount: tx.amount,
-      }))
+      }));
 
-      const worksheet = XLSX.utils.json_to_sheet(rows)
-      const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions")
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions");
       XLSX.writeFile(
         workbook,
         `transactions-${new Date().toISOString().slice(0, 10)}.xlsx`
-      )
+      );
     } catch (error) {
-      console.error("Failed to export transactions:", error)
+      console.error("Failed to export transactions:", error);
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    const numericAmount = parseFloat(amountInput)
+    const numericAmount = parseFloat(amountInput);
     if (Number.isNaN(numericAmount) || numericAmount <= 0) {
-      alert("Please enter a valid amount greater than 0")
-      return
+      alert("Please enter a valid amount greater than 0");
+      return;
     }
 
-    const formData = new FormData(e.currentTarget)
-    
+    const formData = new FormData(e.currentTarget);
+
     const data = {
       amount: numericAmount,
       description: formData.get("description") as string,
       date: new Date(formData.get("date") as string).toISOString(),
       type: formData.get("type") as "INCOME" | "EXPENSE",
       categoryId: formData.get("categoryId") as string,
-    }
+    };
 
     try {
-      const url = editingId ? `/api/transactions/${editingId}` : "/api/transactions"
-      const method = editingId ? "PATCH" : "POST"
-      
+      const url = editingId
+        ? `/api/transactions/${editingId}`
+        : "/api/transactions";
+      const method = editingId ? "PATCH" : "POST";
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      })
+      });
 
       if (res.ok) {
-        setDialogOpen(false)
-        setEditingId(null)
-        fetchTransactions()
+        setDialogOpen(false);
+        setEditingId(null);
+        fetchTransactions();
       }
     } catch (error) {
-      console.error("Failed to save transaction:", error)
+      console.error("Failed to save transaction:", error);
     }
-  }
+  };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this transaction?")) return
+    if (!confirm("Are you sure you want to delete this transaction?")) return;
 
     try {
-      const res = await fetch(`/api/transactions/${id}`, { method: "DELETE" })
+      const res = await fetch(`/api/transactions/${id}`, { method: "DELETE" });
       if (res.ok) {
-        fetchTransactions()
+        fetchTransactions();
       }
     } catch (error) {
-      console.error("Failed to delete transaction:", error)
+      console.error("Failed to delete transaction:", error);
     }
-  }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat(undefined, {
       style: "currency",
       currency,
       minimumFractionDigits: 0,
-    }).format(amount)
-  }
+    }).format(amount);
+  };
 
   const balance = summary.income - summary.expense;
 
@@ -247,7 +251,7 @@ export default function TransactionsPage() {
       return matchesSearch;
     });
   }, [transactions, searchQuery]);
-  if (!session?.user) return null
+  if (!session?.user) return null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -594,11 +598,35 @@ export default function TransactionsPage() {
                       : "."}
                   </TableCaption>
                 </Table>
-                <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    Page {pagination?.page ?? 1} of{" "}
-                    {pagination?.totalPages ?? 1}
-                  </p>
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-sm text-muted-foreground">
+                      Page {pagination?.page ?? 1} of{" "}
+                      {pagination?.totalPages ?? 1} · Limit {limit}
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>Per page</span>
+                      <Select
+                        value={String(limit)}
+                        onValueChange={(value) => {
+                          const next = Number(value);
+                          setLimit(next);
+                          setPage(1);
+                        }}
+                      >
+                        <SelectTrigger className="h-8 w-[80px] text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[5, 10, 15, 20, 25, 31].map((size) => (
+                            <SelectItem key={size} value={String(size)}>
+                              {size}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   <div className="flex gap-2 justify-end">
                     <Button
                       size="sm"
