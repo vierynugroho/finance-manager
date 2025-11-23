@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ADMIN_EMAIL, ADMIN_EMAILS } from "@/lib/auth";
@@ -52,9 +53,14 @@ export function Nav({ user }: NavProps) {
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-              FM
-            </div>
+            <Image
+              src="/finance-manager.png"
+              alt="Finance Manager logo"
+              width={32}
+              height={32}
+              className="h-8 w-8 rounded-lg object-contain"
+              priority
+            />
             <span className="hidden text-lg font-bold sm:inline">
               Finance Manager
             </span>

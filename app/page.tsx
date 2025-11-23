@@ -5,11 +5,11 @@ export default function Home() {
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
         <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
+          src="/finance-manager.png"
+          alt="Finance Manager logo"
+          width={120}
+          height={120}
+          className="h-16 w-auto sm:h-20 dark:invert-0"
           priority
         />
         <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
@@ -43,8 +43,8 @@ export default function Home() {
           >
             <Image
               className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
+              src="/Finance Manager.png"
+              alt="Finance Manager - Viery Dev - Vnonymous"
               width={16}
               height={16}
             />
