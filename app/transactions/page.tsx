@@ -85,6 +85,19 @@ export default function TransactionsPage() {
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [summary, setSummary] = useState<Summary>({ income: 0, expense: 0 });
 
+  // Prefill amount when editing an existing transaction
+  useEffect(() => {
+    if (!editingId) {
+      setAmountInput("")
+      return
+    }
+
+    const tx = transactions.find((t) => t.id === editingId)
+    if (tx) {
+      setAmountInput(String(tx.amount))
+    }
+  }, [editingId, transactions])
+
   useEffect(() => {
     fetchTransactions();
   }, [filterType, categoryFilter, dateFrom, dateTo, page, limit]);
@@ -173,10 +186,26 @@ export default function TransactionsPage() {
     }
   };
 
+  const normalizeAmountInput = (raw: string): string => {
+    // Treat "." as thousands separator and "," as decimal (common in ID),
+    // but store as a plain number string with "." as the decimal separator.
+    const withoutSpaces = raw.replace(/\s+/g, "")
+    const standardized = withoutSpaces
+      .replace(/\./g, "") // remove thousands separators
+      .replace(/,/g, ".") // use dot as decimal separator
+
+    // Keep only digits and at most one dot
+    const cleaned = standardized.replace(/[^0-9.]/g, "")
+    const parts = cleaned.split(".")
+    if (parts.length <= 2) return cleaned
+
+    return `${parts[0]}.${parts.slice(1).join("")}`
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const numericAmount = parseFloat(amountInput);
+    const numericAmount = parseFloat(normalizeAmountInput(amountInput));
     if (Number.isNaN(numericAmount) || numericAmount <= 0) {
       alert("Please enter a valid amount greater than 0");
       return;
@@ -207,6 +236,7 @@ export default function TransactionsPage() {
       if (res.ok) {
         setDialogOpen(false);
         setEditingId(null);
+        setAmountInput("");
         fetchTransactions();
       }
     } catch (error) {
@@ -319,15 +349,12 @@ export default function TransactionsPage() {
                     <Input
                       id="amount"
                       name="amount"
-                      type="number"
+                      type="text"
                       inputMode="decimal"
-                      step="0.01"
                       required
                       placeholder="0"
                       value={amountInput}
-                      onChange={(e) =>
-                        setAmountInput(e.target.value.replace(",", "."))
-                      }
+                      onChange={(e) => setAmountInput(normalizeAmountInput(e.target.value))}
                     />
                     <p className="text-xs text-muted-foreground">
                       {amountInput
