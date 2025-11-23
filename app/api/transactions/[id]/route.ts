@@ -32,12 +32,29 @@ export async function PATCH(
       );
     }
 
+    // If categoryId is provided, make sure it belongs to the current user
+    if (validated.data.categoryId) {
+      const category = await prisma.category.findFirst({
+        where: {
+          id: validated.data.categoryId,
+          userId: session.user.id,
+        },
+      });
+
+      if (!category) {
+        return NextResponse.json(
+          { error: "Category not found" },
+          { status: 404 }
+        );
+      }
+    }
+
     const data: any = { ...validated.data };
     if (data.date) {
       data.date = new Date(data.date);
     }
 
-    const transaction = await prisma.transaction.updateMany({
+    const updated = await prisma.transaction.updateMany({
       where: {
         id: params.id,
         userId: session.user.id,
@@ -45,7 +62,7 @@ export async function PATCH(
       data,
     });
 
-    if (transaction.count === 0) {
+    if (updated.count === 0) {
       return NextResponse.json(
         { error: "Transaction not found" },
         { status: 404 }

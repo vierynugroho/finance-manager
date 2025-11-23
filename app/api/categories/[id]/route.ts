@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const categorySchema = z.object({
   name: z.string().min(1).optional(),
+  type: z.enum(["INCOME", "EXPENSE"]).optional(),
   color: z.string().optional(),
   icon: z.string().optional(),
 });

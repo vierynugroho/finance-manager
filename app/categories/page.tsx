@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Trash2, TrendingUp, TrendingDown, Download } from "lucide-react"
+import { Plus, Trash2, TrendingUp, TrendingDown, Download, Pencil } from "lucide-react"
 import { useSession } from "next-auth/react"
 
 interface Category {
@@ -28,6 +28,7 @@ export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState<"all" | "INCOME" | "EXPENSE">("all")
   const [page, setPage] = useState(1)
@@ -54,27 +55,34 @@ export default function CategoriesPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    
-    const data = {
+
+    const payload = {
       name: formData.get("name") as string,
       type: formData.get("type") as "INCOME" | "EXPENSE",
       color: formData.get("color") as string,
     }
 
+    const isEditing = !!editingCategory
+    const url = isEditing
+      ? `/api/categories/${editingCategory!.id}`
+      : "/api/categories"
+    const method = isEditing ? "PATCH" : "POST"
+
     try {
-      const res = await fetch("/api/categories", {
-        method: "POST",
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
 
       if (res.ok) {
         setDialogOpen(false)
+        setEditingCategory(null)
         fetchCategories()
         ;(e.target as HTMLFormElement).reset()
       } else {
         const error = await res.json()
-        alert(error.error || "Failed to create category")
+        alert(error.error || (isEditing ? "Failed to update category" : "Failed to create category"))
       }
     } catch (error) {
       console.error("Failed to save category:", error)
@@ -141,18 +149,33 @@ export default function CategoriesPage() {
               Organize your transactions with custom categories
             </p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog
+            open={dialogOpen}
+            onOpenChange={(open) => {
+              setDialogOpen(open)
+              if (!open) setEditingCategory(null)
+            }}
+          >
             <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto cursor-pointer">
+              <Button
+                className="w-full sm:w-auto cursor-pointer"
+                onClick={() => setEditingCategory(null)}
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Category
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add New Category</DialogTitle>
+                <DialogTitle>
+                  {editingCategory ? "Edit Category" : "Add New Category"}
+                </DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form
+                key={editingCategory?.id ?? "new"}
+                onSubmit={handleSubmit}
+                className="space-y-4"
+              >
                 <div className="space-y-2">
                   <Label htmlFor="name">Category Name</Label>
                   <Input
@@ -161,11 +184,16 @@ export default function CategoriesPage() {
                     type="text"
                     required
                     placeholder="e.g., Salary, Food, Transport"
+                    defaultValue={editingCategory?.name ?? ""}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="type">Type</Label>
-                  <Select name="type" required>
+                  <Select
+                    name="type"
+                    required
+                    defaultValue={editingCategory?.type}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
@@ -185,6 +213,7 @@ export default function CategoriesPage() {
                           name="color"
                           value={color}
                           required
+                          defaultChecked={editingCategory?.color === color}
                           className="sr-only peer"
                         />
                         <div
@@ -196,7 +225,7 @@ export default function CategoriesPage() {
                   </div>
                 </div>
                 <Button type="submit" className="w-full cursor-pointer">
-                  Add Category
+                  {editingCategory ? "Save Changes" : "Add Category"}
                 </Button>
               </form>
             </DialogContent>
@@ -291,14 +320,27 @@ export default function CategoriesPage() {
                           />
                           <span className="font-medium">{category.name}</span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="cursor-pointer"
-                          onClick={() => handleDelete(category.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="cursor-pointer"
+                            onClick={() => {
+                              setEditingCategory(category)
+                              setDialogOpen(true)
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="cursor-pointer"
+                            onClick={() => handleDelete(category.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -333,14 +375,27 @@ export default function CategoriesPage() {
                           />
                           <span className="font-medium">{category.name}</span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(category.id)}
-                          className="cursor-pointer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="cursor-pointer"
+                            onClick={() => {
+                              setEditingCategory(category)
+                              setDialogOpen(true)
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(category.id)}
+                            className="cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
