@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { ADMIN_EMAIL } from "@/lib/auth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,11 +35,16 @@ export function Nav({ user }: NavProps) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
 
+  const isAdmin = user.email === ADMIN_EMAIL;
+
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/transactions", label: "Transactions", icon: ArrowDownUp },
     { href: "/categories", label: "Categories", icon: Tag },
     { href: "/settings", label: "Settings", icon: Settings },
+    ...(isAdmin
+      ? [{ href: "/admin", label: "Admin", icon: LayoutDashboard as const }]
+      : []),
   ];
 
   return (
