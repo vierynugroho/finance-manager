@@ -39,6 +39,7 @@ import {
 } from "recharts";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
+import { FinancialHealthBanner } from "@/components/financial-health-banner";
 
 interface RecentPagination {
   total: number;
@@ -177,6 +178,21 @@ export default function DashboardPage() {
             overview.
           </p>
         </div>
+
+        {!loading && stats && (
+          <FinancialHealthBanner
+            summary={stats.summary}
+            topCategory={
+              stats.expensesByCategory.length > 0
+                ? {
+                    name: stats.expensesByCategory[0].category,
+                    amount: stats.expensesByCategory[0].amount,
+                  }
+                : null
+            }
+            currency={currency}
+          />
+        )}
 
         {loading ? (
           <div className="text-center py-12">Loading...</div>
