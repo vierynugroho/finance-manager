@@ -8,8 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Plus, Trash2, TrendingUp, TrendingDown } from "lucide-react"
+import { Plus, Trash2, TrendingUp, TrendingDown, Download } from "lucide-react"
 import { useSession } from "next-auth/react"
 
 interface Category {
@@ -29,6 +28,10 @@ export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [search, setSearch] = useState("")
+  const [typeFilter, setTypeFilter] = useState<"all" | "INCOME" | "EXPENSE">("all")
+  const [page, setPage] = useState(1)
+  const pageSize = 10
 
   useEffect(() => {
     fetchCategories()
@@ -94,16 +97,44 @@ export default function CategoriesPage() {
     }
   }
 
-  const incomeCategories = categories.filter(c => c.type === "INCOME")
-  const expenseCategories = categories.filter(c => c.type === "EXPENSE")
+  const filtered = categories.filter((c) => {
+    if (typeFilter !== "all" && c.type !== typeFilter) return false
+    if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false
+    return true
+  })
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const paged = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  const incomeCategories = paged.filter((c) => c.type === "INCOME")
+  const expenseCategories = paged.filter((c) => c.type === "EXPENSE")
+
+  const handleExport = () => {
+    if (!filtered.length) return
+
+    const header = ["Name", "Type", "Color"]
+    const rows = filtered.map((c) => [c.name, c.type, c.color])
+    const csv = [header, ...rows]
+      .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n")
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "categories.csv"
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   if (!session?.user) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-background">
       <Nav user={session.user} />
-      <main className="container py-6 space-y-6">
-        <div className="flex items-center justify-between">
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2">Categories</h1>
             <p className="text-muted-foreground">
@@ -112,7 +143,7 @@ export default function CategoriesPage() {
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Category
               </Button>
@@ -170,6 +201,64 @@ export default function CategoriesPage() {
               </form>
             </DialogContent>
           </Dialog>
+        </div>
+
+        {/* Filters & export */}
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant={typeFilter === "all" ? "default" : "outline"}
+              onClick={() => {
+                setTypeFilter("all")
+                setPage(1)
+              }}
+            >
+              All
+            </Button>
+            <Button
+              size="sm"
+              variant={typeFilter === "INCOME" ? "default" : "outline"}
+              onClick={() => {
+                setTypeFilter("INCOME")
+                setPage(1)
+              }}
+            >
+              Income
+            </Button>
+            <Button
+              size="sm"
+              variant={typeFilter === "EXPENSE" ? "default" : "outline"}
+              onClick={() => {
+                setTypeFilter("EXPENSE")
+                setPage(1)
+              }}
+            >
+              Expenses
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Input
+              type="search"
+              placeholder="Search category name"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
+              className="w-full md:w-64"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={handleExport}
+            >
+              <Download className="h-4 w-4" /> Export CSV
+            </Button>
+          </div>
         </div>
 
         {loading ? (
@@ -259,6 +348,31 @@ export default function CategoriesPage() {
             </Card>
           </div>
         )}
+
+        {/* Pagination */}
+        <div className="flex flex-col items-center justify-between gap-2 pt-2 sm:flex-row">
+          <p className="text-xs text-muted-foreground">
+            Page {currentPage} of {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
       </main>
     </div>
   )
