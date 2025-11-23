@@ -354,7 +354,9 @@ export default function TransactionsPage() {
                       required
                       placeholder="0"
                       value={amountInput}
-                      onChange={(e) => setAmountInput(normalizeAmountInput(e.target.value))}
+                      onChange={(e) =>
+                        setAmountInput(normalizeAmountInput(e.target.value))
+                      }
                     />
                     <p className="text-xs text-muted-foreground">
                       {amountInput
@@ -377,7 +379,10 @@ export default function TransactionsPage() {
                       <SelectTrigger>
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
-                      <SelectContent searchable searchPlaceholder="Search category...">
+                      <SelectContent
+                        searchable
+                        searchPlaceholder="Search category..."
+                      >
                         {categories.map((cat) => (
                           <SelectItem key={cat.id} value={cat.id}>
                             {cat.name} ({cat.type})
@@ -453,7 +458,7 @@ export default function TransactionsPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
             <Button
               className="cursor-pointer"
@@ -490,7 +495,7 @@ export default function TransactionsPage() {
             </Button>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             <Select
               value={categoryFilter}
               onValueChange={(value) => {
@@ -498,10 +503,13 @@ export default function TransactionsPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="All categories" />
               </SelectTrigger>
-              <SelectContent searchable searchPlaceholder="Search categories...">
+              <SelectContent
+                searchable
+                searchPlaceholder="Search categories..."
+              >
                 <SelectItem value="all">All categories</SelectItem>
                 {categories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>
@@ -518,8 +526,9 @@ export default function TransactionsPage() {
                 setDateFrom(e.target.value);
                 setPage(1);
               }}
-              className="w-[150px]"
+              className="w-full"
             />
+
             <Input
               type="date"
               value={dateTo}
@@ -527,14 +536,15 @@ export default function TransactionsPage() {
                 setDateTo(e.target.value);
                 setPage(1);
               }}
-              className="w-[150px]"
+              className="w-full"
             />
+
             <Input
               type="search"
               placeholder="Search description or category"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full md:w-64"
+              className="w-full sm:col-span-2 lg:col-span-1"
             />
           </div>
         </div>

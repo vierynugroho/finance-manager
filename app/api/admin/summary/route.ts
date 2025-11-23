@@ -11,6 +11,12 @@ export async function GET(req: NextRequest) {
     }
 
     const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true,
+      },
       orderBy: { createdAt: "desc" },
     })
 
@@ -20,19 +26,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ users: [], stats: [] })
     }
 
+    // Single aggregation query for sums and counts grouped by user & type
     const aggregates = await prisma.transaction.groupBy({
       by: ["userId", "type"],
       where: {
         userId: { in: userIds },
       },
       _sum: { amount: true },
-    })
-
-    const counts = await prisma.transaction.groupBy({
-      by: ["userId"],
-      where: {
-        userId: { in: userIds },
-      },
       _count: { _all: true },
     })
 
@@ -42,15 +42,17 @@ export async function GET(req: NextRequest) {
         userAgg.find((a) => a.type === "INCOME")?._sum.amount ?? 0
       const expense =
         userAgg.find((a) => a.type === "EXPENSE")?._sum.amount ?? 0
-      const totalCount =
-        counts.find((c) => c.userId === user.id)?._count._all ?? 0
+      const transactionsCount = userAgg.reduce(
+        (acc, curr) => acc + (curr._count?._all ?? 0),
+        0,
+      )
 
       return {
         userId: user.id,
         income,
         expense,
         balance: income - expense,
-        transactionsCount: totalCount,
+        transactionsCount,
       }
     })
 

@@ -152,8 +152,8 @@ export default function CategoriesPage() {
           <Dialog
             open={dialogOpen}
             onOpenChange={(open) => {
-              setDialogOpen(open)
-              if (!open) setEditingCategory(null)
+              setDialogOpen(open);
+              if (!open) setEditingCategory(null);
             }}
           >
             <DialogTrigger asChild>
@@ -233,7 +233,7 @@ export default function CategoriesPage() {
         </div>
 
         {/* Filters & export */}
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
             <Button
               className="cursor-pointer"
@@ -270,7 +270,7 @@ export default function CategoriesPage() {
             </Button>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Input
               type="search"
               placeholder="Search category name"
@@ -279,13 +279,13 @@ export default function CategoriesPage() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="w-full md:w-64 cursor-pointer"
+              className="w-full cursor-pointer"
             />
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="flex items-center gap-2 cursor-pointer"
+              className="flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
               onClick={handleExport}
             >
               <Download className="h-4 w-4" /> Export CSV
@@ -326,8 +326,8 @@ export default function CategoriesPage() {
                             size="icon"
                             className="cursor-pointer"
                             onClick={() => {
-                              setEditingCategory(category)
-                              setDialogOpen(true)
+                              setEditingCategory(category);
+                              setDialogOpen(true);
                             }}
                           >
                             <Pencil className="h-4 w-4" />
@@ -381,8 +381,8 @@ export default function CategoriesPage() {
                             size="icon"
                             className="cursor-pointer"
                             onClick={() => {
-                              setEditingCategory(category)
-                              setDialogOpen(true)
+                              setEditingCategory(category);
+                              setDialogOpen(true);
                             }}
                           >
                             <Pencil className="h-4 w-4" />

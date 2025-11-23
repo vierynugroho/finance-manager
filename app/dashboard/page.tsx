@@ -188,16 +188,15 @@ export default function DashboardPage() {
                 <CardTitle>Filters</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-3 items-center justify-between">
-                  <div className="flex flex-wrap gap-2 items-center">
-                    <span className="text-sm font-medium">Period:</span>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <span className="text-sm font-medium">Period:</span>
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"
                       className="cursor-pointer"
                       variant={period === "month" ? "default" : "outline"}
                       onClick={() => {
                         setPeriod("month");
-                        // reset custom range & specific date/month
                         setStartDate("");
                         setEndDate("");
                         setMonthFilter("");
@@ -213,7 +212,6 @@ export default function DashboardPage() {
                       variant={period === "year" ? "default" : "outline"}
                       onClick={() => {
                         setPeriod("year");
-                        // reset custom range & specific date/month
                         setStartDate("");
                         setEndDate("");
                         setMonthFilter("");
@@ -225,14 +223,15 @@ export default function DashboardPage() {
                     </Button>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-3 items-end">
-                  <div className="space-y-1">
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">
                       Custom range
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Input
-                        className="cursor-pointer"
+                        className="cursor-pointer w-full"
                         type="date"
                         value={formatDateInput(startDate)}
                         onChange={(e) => {
@@ -241,7 +240,7 @@ export default function DashboardPage() {
                         }}
                       />
                       <Input
-                        className="cursor-pointer"
+                        className="cursor-pointer w-full"
                         type="date"
                         value={formatDateInput(endDate)}
                         onChange={(e) => {
@@ -251,23 +250,25 @@ export default function DashboardPage() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-1">
+
+                  <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">
                       Specific month
                     </p>
                     <Input
-                      className="cursor-pointer"
+                      className="cursor-pointer w-full"
                       type="month"
                       value={monthFilter}
                       onChange={(e) => applyMonthFilter(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-1">
+
+                  <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">
                       Specific date
                     </p>
                     <Input
-                      className="cursor-pointer"
+                      className="cursor-pointer w-full"
                       type="date"
                       value={singleDate}
                       onChange={(e) => applySingleDateFilter(e.target.value)}
@@ -421,11 +422,11 @@ export default function DashboardPage() {
             {/* Recent Transactions */}
             <Card>
               <CardHeader>
-                <div className="flex justify-between mx-2 items-center">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mx-2">
                   <CardTitle>Recent Transactions</CardTitle>
-                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <p className="text-xs font-medium text-muted-foreground">
-                      Recent transactions per page
+                      Per page:
                     </p>
                     <Select
                       value={String(recentLimit)}
@@ -452,15 +453,15 @@ export default function DashboardPage() {
               <CardContent>
                 {stats.recentTransactions.length > 0 ? (
                   <>
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {stats.recentTransactions.map((transaction) => (
                         <div
                           key={transaction.id}
-                          className="flex items-center justify-between p-4 rounded-lg border"
+                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 rounded-lg border"
                         >
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
                             <div
-                              className={`p-2 rounded-full ${
+                              className={`p-2 rounded-full flex-shrink-0 ${
                                 transaction.type === "INCOME"
                                   ? "bg-green-100 text-green-600 dark:bg-green-900/20"
                                   : "bg-red-100 text-red-600 dark:bg-red-900/20"
@@ -472,12 +473,12 @@ export default function DashboardPage() {
                                 <TrendingDown className="h-4 w-4" />
                               )}
                             </div>
-                            <div>
-                              <p className="font-medium">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-sm sm:text-base truncate">
                                 {transaction.description ||
                                   transaction.category.name}
                               </p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs sm:text-sm text-muted-foreground">
                                 {format(
                                   new Date(transaction.date),
                                   "MMM dd, yyyy"
@@ -485,9 +486,9 @@ export default function DashboardPage() {
                               </p>
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="flex flex-col sm:text-right gap-1 flex-shrink-0">
                             <p
-                              className={`font-bold ${
+                              className={`font-bold text-sm sm:text-base break-all ${
                                 transaction.type === "INCOME"
                                   ? "text-green-600"
                                   : "text-red-600"
@@ -498,6 +499,7 @@ export default function DashboardPage() {
                             </p>
                             <Badge
                               variant="outline"
+                              className="w-fit"
                               style={{
                                 borderColor: transaction.category.color,
                               }}
@@ -508,13 +510,13 @@ export default function DashboardPage() {
                         </div>
                       ))}
                     </div>
-                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="text-sm text-muted-foreground">
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
                         Page {stats.recentPagination.page} of{" "}
                         {stats.recentPagination.totalPages} · Limit{" "}
                         {stats.recentPagination.limit}
                       </p>
-                      <div className="flex gap-2 justify-end">
+                      <div className="flex gap-2 justify-center sm:justify-end">
                         <Button
                           className="cursor-pointer"
                           size="sm"
@@ -549,8 +551,11 @@ export default function DashboardPage() {
                     </div>
                   </>
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    No transactions yet. Start by adding your first transaction!
+                  <div className="text-center py-8 sm:py-12 text-muted-foreground">
+                    <p className="text-sm sm:text-base">
+                      No transactions yet. Start by adding your first
+                      transaction!
+                    </p>
                   </div>
                 )}
               </CardContent>
