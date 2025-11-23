@@ -12,21 +12,31 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const period = searchParams.get("period") || "month"
+    const startDateParam = searchParams.get("startDate")
+    const endDateParam = searchParams.get("endDate")
+    const recentPage = parseInt(searchParams.get("recentPage") || "1")
+    const recentLimit = parseInt(searchParams.get("recentLimit") || "5")
 
     const now = new Date()
     let startDate: Date
     let endDate: Date
 
-    switch (period) {
-      case "year":
-        startDate = startOfYear(now)
-        endDate = endOfMonth(now)
-        break
-      case "month":
-      default:
-        startDate = startOfMonth(now)
-        endDate = endOfMonth(now)
-        break
+    if (startDateParam || endDateParam) {
+      // Custom date range overrides period
+      startDate = startDateParam ? new Date(startDateParam) : startOfMonth(now)
+      endDate = endDateParam ? new Date(endDateParam) : endOfMonth(now)
+    } else {
+      switch (period) {
+        case "year":
+          startDate = startOfYear(now)
+          endDate = endOfMonth(now)
+          break
+        case "month":
+        default:
+          startDate = startOfMonth(now)
+          endDate = endOfMonth(now)
+          break
+      }
     }
 
     // Get current period totals
@@ -94,11 +104,12 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    // Get last 6 months trend
+    // Get last 6 months trend (based on endDate so it follows the selected range)
     const monthlyTrend = []
+    const trendBaseDate = endDate
     for (let i = 5; i >= 0; i--) {
-      const monthStart = startOfMonth(subMonths(now, i))
-      const monthEnd = endOfMonth(subMonths(now, i))
+      const monthStart = startOfMonth(subMonths(trendBaseDate, i))
+      const monthEnd = endOfMonth(subMonths(trendBaseDate, i))
 
       const [monthIncome, monthExpense] = await Promise.all([
         prisma.transaction.aggregate({
@@ -126,17 +137,33 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Recent transactions
-    const recentTransactions = await prisma.transaction.findMany({
-      where: {
-        userId: session.user.id,
-      },
-      include: {
-        category: true,
-      },
-      orderBy: { date: "desc" },
-      take: 5,
-    })
+    // Recent transactions (respect the same date range + pagination)
+    const [recentTransactions, recentTotal] = await Promise.all([
+      prisma.transaction.findMany({
+        where: {
+          userId: session.user.id,
+          date: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        include: {
+          category: true,
+        },
+        orderBy: { date: "desc" },
+        skip: (recentPage - 1) * recentLimit,
+        take: recentLimit,
+      }),
+      prisma.transaction.count({
+        where: {
+          userId: session.user.id,
+          date: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+      }),
+    ])
 
     return NextResponse.json({
       summary: {
@@ -147,6 +174,12 @@ export async function GET(req: NextRequest) {
       expensesByCategory: expensesByCategoryWithNames,
       monthlyTrend,
       recentTransactions,
+      recentPagination: {
+        total: recentTotal,
+        page: recentPage,
+        limit: recentLimit,
+        totalPages: Math.ceil(recentTotal / recentLimit),
+      },
     })
   } catch (error) {
     console.error("Get stats error:", error)

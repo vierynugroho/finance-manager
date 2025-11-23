@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
       if (endDate) where.date.lte = new Date(endDate)
     }
 
-    const [transactions, total] = await Promise.all([
+    const [transactions, total, incomeTotal, expenseTotal] = await Promise.all([
       prisma.transaction.findMany({
         where,
         include: {
@@ -49,7 +49,18 @@ export async function GET(req: NextRequest) {
         take: limit,
       }),
       prisma.transaction.count({ where }),
+      prisma.transaction.aggregate({
+        where: { ...where, type: "INCOME" },
+        _sum: { amount: true },
+      }),
+      prisma.transaction.aggregate({
+        where: { ...where, type: "EXPENSE" },
+        _sum: { amount: true },
+      }),
     ])
+
+    const income = incomeTotal._sum.amount || 0
+    const expense = expenseTotal._sum.amount || 0
 
     return NextResponse.json({
       transactions,
@@ -58,6 +69,10 @@ export async function GET(req: NextRequest) {
         page,
         limit,
         totalPages: Math.ceil(total / limit),
+      },
+      summary: {
+        income,
+        expense,
       },
     })
   } catch (error) {

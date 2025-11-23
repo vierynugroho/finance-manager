@@ -5,6 +5,8 @@ import { Nav } from "@/components/nav";
 import { StatsCard } from "@/components/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useCurrency } from "@/lib/use-currency";
 import {
   TrendingUp,
@@ -30,6 +32,13 @@ import {
 } from "recharts";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
+
+interface RecentPagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 interface Stats {
   summary: {
@@ -58,6 +67,7 @@ interface Stats {
       color: string;
     };
   }>;
+  recentPagination: RecentPagination;
 }
 
 export default function DashboardPage() {
@@ -65,14 +75,64 @@ export default function DashboardPage() {
   const { currency } = useCurrency();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<"month" | "year">("month");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [monthFilter, setMonthFilter] = useState<string>("");
+  const [singleDate, setSingleDate] = useState<string>("");
+  const [recentPage, setRecentPage] = useState<number>(1);
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [period, startDate, endDate, recentPage]);
+
+  const applyMonthFilter = (value: string) => {
+    setMonthFilter(value);
+    setSingleDate("");
+    if (!value) {
+      setStartDate("");
+      setEndDate("");
+      setRecentPage(1);
+      return;
+    }
+    const [year, month] = value.split("-");
+    const firstDay = new Date(Number(year), Number(month) - 1, 1);
+    const lastDay = new Date(Number(year), Number(month), 0);
+    const start = firstDay.toISOString().slice(0, 10);
+    const end = lastDay.toISOString().slice(0, 10);
+    setStartDate(start);
+    setEndDate(end);
+    setRecentPage(1);
+  };
+
+  const applySingleDateFilter = (value: string) => {
+    setSingleDate(value);
+    setMonthFilter("");
+    if (!value) {
+      setStartDate("");
+      setEndDate("");
+      setRecentPage(1);
+      return;
+    }
+    setStartDate(value);
+    setEndDate(value);
+    setRecentPage(1);
+  };
 
   const fetchStats = async () => {
     try {
-      const res = await fetch("/api/stats");
+      const params = new URLSearchParams();
+      params.append("period", period);
+      if (startDate) {
+        params.append("startDate", new Date(startDate).toISOString());
+      }
+      if (endDate) {
+        params.append("endDate", new Date(endDate).toISOString());
+      }
+      params.append("recentPage", String(recentPage));
+      params.append("recentLimit", "5");
+
+      const res = await fetch(`/api/stats?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setStats(data);
@@ -96,6 +156,8 @@ export default function DashboardPage() {
     return null;
   }
 
+  const formatDateInput = (value: string) => value;
+
   return (
     <div className="min-h-screen bg-background">
       <Nav user={session.user} />
@@ -112,6 +174,85 @@ export default function DashboardPage() {
           <div className="text-center py-12">Loading...</div>
         ) : stats ? (
           <>
+            {/* Filters */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Filters</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-3 items-center justify-between">
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <span className="text-sm font-medium">Period:</span>
+                    <Button
+                      size="sm"
+                      variant={period === "month" ? "default" : "outline"}
+                      onClick={() => {
+                        setPeriod("month");
+                        setRecentPage(1);
+                      }}
+                    >
+                      This Month
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={period === "year" ? "default" : "outline"}
+                      onClick={() => {
+                        setPeriod("year");
+                        setRecentPage(1);
+                      }}
+                    >
+                      This Year
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3 items-end">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Custom range
+                    </p>
+                    <div className="flex gap-2">
+                      <Input
+                        type="date"
+                        value={formatDateInput(startDate)}
+                        onChange={(e) => {
+                          setStartDate(e.target.value);
+                          setRecentPage(1);
+                        }}
+                      />
+                      <Input
+                        type="date"
+                        value={formatDateInput(endDate)}
+                        onChange={(e) => {
+                          setEndDate(e.target.value);
+                          setRecentPage(1);
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Specific month
+                    </p>
+                    <Input
+                      type="month"
+                      value={monthFilter}
+                      onChange={(e) => applyMonthFilter(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Specific date
+                    </p>
+                    <Input
+                      type="date"
+                      value={singleDate}
+                      onChange={(e) => applySingleDateFilter(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-3">
               <StatsCard
@@ -144,13 +285,24 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={stats.monthlyTrend}>
+                    <LineChart
+                      data={stats.monthlyTrend}
+                      margin={{ top: 16, right: 24, bottom: 24, left: 48 }}
+                    >
                       <CartesianGrid
                         strokeDasharray="3 3"
                         className="stroke-muted"
                       />
                       <XAxis dataKey="month" className="text-xs" />
-                      <YAxis className="text-xs" />
+                      <YAxis
+                        className="text-xs"
+                        tickFormatter={(value: number) =>
+                          new Intl.NumberFormat(undefined, {
+                            notation: "compact",
+                            maximumFractionDigits: 1,
+                          }).format(value)
+                        }
+                      />
                       <Tooltip
                         formatter={(value: number) => formatCurrency(value)}
                         contentStyle={{
@@ -195,7 +347,9 @@ export default function DashboardPage() {
                           cx="50%"
                           cy="50%"
                           outerRadius={100}
-                          label={(entry) => entry.accumulate}
+                          label={({ name, percent }) =>
+                            `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
+                          }
                         >
                           {stats.expensesByCategory.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
@@ -227,60 +381,100 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 {stats.recentTransactions.length > 0 ? (
-                  <div className="space-y-4">
-                    {stats.recentTransactions.map((transaction) => (
-                      <div
-                        key={transaction.id}
-                        className="flex items-center justify-between p-4 rounded-lg border"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div
-                            className={`p-2 rounded-full ${
-                              transaction.type === "INCOME"
-                                ? "bg-green-100 text-green-600 dark:bg-green-900/20"
-                                : "bg-red-100 text-red-600 dark:bg-red-900/20"
-                            }`}
-                          >
-                            {transaction.type === "INCOME" ? (
-                              <TrendingUp className="h-4 w-4" />
-                            ) : (
-                              <TrendingDown className="h-4 w-4" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {transaction.description ||
-                                transaction.category.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {format(
-                                new Date(transaction.date),
-                                "MMM dd, yyyy"
+                  <>
+                    <div className="space-y-4">
+                      {stats.recentTransactions.map((transaction) => (
+                        <div
+                          key={transaction.id}
+                          className="flex items-center justify-between p-4 rounded-lg border"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div
+                              className={`p-2 rounded-full ${
+                                transaction.type === "INCOME"
+                                  ? "bg-green-100 text-green-600 dark:bg-green-900/20"
+                                  : "bg-red-100 text-red-600 dark:bg-red-900/20"
+                              }`}
+                            >
+                              {transaction.type === "INCOME" ? (
+                                <TrendingUp className="h-4 w-4" />
+                              ) : (
+                                <TrendingDown className="h-4 w-4" />
                               )}
+                            </div>
+                            <div>
+                              <p className="font-medium">
+                                {transaction.description ||
+                                  transaction.category.name}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {format(
+                                  new Date(transaction.date),
+                                  "MMM dd, yyyy"
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p
+                              className={`font-bold ${
+                                transaction.type === "INCOME"
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              {transaction.type === "INCOME" ? "+" : "-"}
+                              {formatCurrency(transaction.amount)}
                             </p>
+                            <Badge
+                              variant="outline"
+                              style={{
+                                borderColor: transaction.category.color,
+                              }}
+                            >
+                              {transaction.category.name}
+                            </Badge>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p
-                            className={`font-bold ${
-                              transaction.type === "INCOME"
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }`}
-                          >
-                            {transaction.type === "INCOME" ? "+" : "-"}
-                            {formatCurrency(transaction.amount)}
-                          </p>
-                          <Badge
-                            variant="outline"
-                            style={{ borderColor: transaction.category.color }}
-                          >
-                            {transaction.category.name}
-                          </Badge>
-                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-sm text-muted-foreground">
+                        Page {stats.recentPagination.page} of{" "}
+                        {stats.recentPagination.totalPages}
+                      </p>
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={stats.recentPagination.page <= 1}
+                          onClick={() =>
+                            setRecentPage((prev) => Math.max(1, prev - 1))
+                          }
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={
+                            stats.recentPagination.page >=
+                            stats.recentPagination.totalPages
+                          }
+                          onClick={() =>
+                            setRecentPage((prev) =>
+                              Math.min(
+                                stats.recentPagination.totalPages,
+                                prev + 1
+                              )
+                            )
+                          }
+                        >
+                          Next
+                        </Button>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  </>
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">
                     No transactions yet. Start by adding your first transaction!

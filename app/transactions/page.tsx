@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import * as XLSX from "xlsx";
 import { Nav } from "@/components/nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -53,6 +54,18 @@ interface Category {
   color: string
 }
 
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+interface Summary {
+  income: number;
+  expense: number;
+}
+
 export default function TransactionsPage() {
   const { data: session } = useSession()
   const { currency } = useCurrency()
@@ -67,10 +80,13 @@ export default function TransactionsPage() {
   const [dateTo, setDateTo] = useState<string>("")
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [amountInput, setAmountInput] = useState<string>("")
+  const [page, setPage] = useState<number>(1);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [summary, setSummary] = useState<Summary>({ income: 0, expense: 0 });
 
   useEffect(() => {
-    fetchTransactions()
-  }, [filterType, categoryFilter, dateFrom, dateTo])
+    fetchTransactions();
+  }, [filterType, categoryFilter, dateFrom, dateTo, page]);
 
   useEffect(() => {
     fetchCategories()
@@ -84,11 +100,22 @@ export default function TransactionsPage() {
       if (categoryFilter !== "all" && categoryFilter) params.append("categoryId", categoryFilter)
       if (dateFrom) params.append("startDate", new Date(dateFrom).toISOString())
       if (dateTo) params.append("endDate", new Date(dateTo).toISOString())
+      params.append("page", page.toString());
+      params.append("limit", "10");
 
       const res = await fetch(`/api/transactions?${params}`)
       if (res.ok) {
         const data = await res.json()
         setTransactions(data.transactions)
+        if (data.pagination) {
+          setPagination(data.pagination);
+        }
+        if (data.summary) {
+          setSummary({
+            income: data.summary.income || 0,
+            expense: data.summary.expense || 0,
+          });
+        }
       }
     } catch (error) {
       console.error("Failed to fetch transactions:", error)
@@ -106,6 +133,41 @@ export default function TransactionsPage() {
       }
     } catch (error) {
       console.error("Failed to fetch categories:", error)
+    }
+  }
+
+  const handleExport = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (filterType !== "all") params.append("type", filterType)
+      if (categoryFilter !== "all" && categoryFilter)
+        params.append("categoryId", categoryFilter)
+      if (dateFrom)
+        params.append("startDate", new Date(dateFrom).toISOString())
+      if (dateTo)
+        params.append("endDate", new Date(dateTo).toISOString())
+      params.append("limit", "10000")
+
+      const res = await fetch(`/api/transactions?${params}`)
+      if (!res.ok) return
+      const data = await res.json()
+      const rows = (data.transactions as Transaction[]).map((tx) => ({
+        Date: format(new Date(tx.date), "yyyy-MM-dd HH:mm"),
+        Description: tx.description || tx.category.name,
+        Category: tx.category.name,
+        Type: tx.type,
+        Amount: tx.amount,
+      }))
+
+      const worksheet = XLSX.utils.json_to_sheet(rows)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions")
+      XLSX.writeFile(
+        workbook,
+        `transactions-${new Date().toISOString().slice(0, 10)}.xlsx`
+      )
+    } catch (error) {
+      console.error("Failed to export transactions:", error)
     }
   }
 
@@ -169,35 +231,22 @@ export default function TransactionsPage() {
     }).format(amount)
   }
 
+  const balance = summary.income - summary.expense;
+
   const filteredTransactions = useMemo(() => {
     return transactions.filter((transaction) => {
       const matchesSearch =
         !searchQuery ||
-        transaction.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transaction.category.name.toLowerCase().includes(searchQuery.toLowerCase())
+        transaction.description
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        transaction.category.name
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
 
-      return matchesSearch
-    })
-  }, [transactions, searchQuery])
-
-  const totals = useMemo(
-    () =>
-      filteredTransactions.reduce(
-        (acc, tx) => {
-          if (tx.type === "INCOME") {
-            acc.income += tx.amount
-          } else {
-            acc.expense += tx.amount
-          }
-          return acc
-        },
-        { income: 0, expense: 0 }
-      ),
-    [filteredTransactions]
-  )
-
-  const balance = totals.income - totals.expense
-
+      return matchesSearch;
+    });
+  }, [transactions, searchQuery]);
   if (!session?.user) return null
 
   return (
@@ -211,139 +260,152 @@ export default function TransactionsPage() {
               Manage and review all your income and expenses in one place.
             </p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setEditingId(null)} className="w-full sm:w-auto">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Transaction
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {editingId ? "Edit Transaction" : "Add New Transaction"}
-                </DialogTitle>
-              </DialogHeader>
-              {/* When editing, we pre-fill fields via defaultValue and a changing key */}
-              <form
-                key={editingId ?? "new"}
-                onSubmit={handleSubmit}
-                className="space-y-4"
-              >
-                <div className="space-y-2">
-                  <Label htmlFor="type">Type</Label>
-                  <Select
-                    name="type"
-                    required
-                    defaultValue={
-                      editingId
-                        ? transactions.find((t) => t.id === editingId)?.type
-                        : undefined
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="INCOME">Income</SelectItem>
-                      <SelectItem value="EXPENSE">Expense</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Amount</Label>
-                  <Input
-                    id="amount"
-                    name="amount"
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    required
-                    placeholder="0"
-                    value={amountInput}
-                    onChange={(e) => setAmountInput(e.target.value.replace(",", "."))}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {amountInput
-                      ? `≈ ${formatCurrency(Number(amountInput) || 0)}`
-                      : "Enter an amount to see it formatted here"}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="categoryId">Category</Label>
-                  <Select
-                    name="categoryId"
-                    required
-                    defaultValue={
-                      editingId
-                        ? transactions.find((t) => t.id === editingId)?.category.id
-                        : undefined
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name} ({cat.type})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    name="date"
-                    type="datetime-local"
-                    required
-                    defaultValue={
-                      editingId
-                        ? format(
-                            new Date(
-                              transactions.find((t) => t.id === editingId)!.date
-                            ),
-                            "yyyy-MM-dd'T'HH:mm"
-                          )
-                        : format(new Date(), "yyyy-MM-dd'T'HH:mm")
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description (Optional)</Label>
-                  <Input
-                    id="description"
-                    name="description"
-                    type="text"
-                    placeholder="e.g., Salary, Groceries"
-                    defaultValue={
-                      editingId
-                        ? transactions.find((t) => t.id === editingId)?.description ?? ""
-                        : ""
-                    }
-                  />
-                </div>
-                <Button type="submit" className="w-full">
-                  {editingId ? "Update" : "Add"} Transaction
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <Button variant="outline" onClick={handleExport}>
+              Export Excel
+            </Button>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  onClick={() => setEditingId(null)}
+                  className="w-full sm:w-auto"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Transaction
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingId ? "Edit Transaction" : "Add New Transaction"}
+                  </DialogTitle>
+                </DialogHeader>
+                {/* When editing, we pre-fill fields via defaultValue and a changing key */}
+                <form
+                  key={editingId ?? "new"}
+                  onSubmit={handleSubmit}
+                  className="space-y-4"
+                >
+                  <div className="space-y-2">
+                    <Label htmlFor="type">Type</Label>
+                    <Select
+                      name="type"
+                      required
+                      defaultValue={
+                        editingId
+                          ? transactions.find((t) => t.id === editingId)?.type
+                          : undefined
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="INCOME">Income</SelectItem>
+                        <SelectItem value="EXPENSE">Expense</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">Amount</Label>
+                    <Input
+                      id="amount"
+                      name="amount"
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      required
+                      placeholder="0"
+                      value={amountInput}
+                      onChange={(e) =>
+                        setAmountInput(e.target.value.replace(",", "."))
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {amountInput
+                        ? `≈ ${formatCurrency(Number(amountInput) || 0)}`
+                        : "Enter an amount to see it formatted here"}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="categoryId">Category</Label>
+                    <Select
+                      name="categoryId"
+                      required
+                      defaultValue={
+                        editingId
+                          ? transactions.find((t) => t.id === editingId)
+                              ?.category.id
+                          : undefined
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name} ({cat.type})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Date</Label>
+                    <Input
+                      id="date"
+                      name="date"
+                      type="datetime-local"
+                      required
+                      defaultValue={
+                        editingId
+                          ? format(
+                              new Date(
+                                transactions.find(
+                                  (t) => t.id === editingId
+                                )!.date
+                              ),
+                              "yyyy-MM-dd'T'HH:mm"
+                            )
+                          : format(new Date(), "yyyy-MM-dd'T'HH:mm")
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description (Optional)</Label>
+                    <Input
+                      id="description"
+                      name="description"
+                      type="text"
+                      placeholder="e.g., Salary, Groceries"
+                      defaultValue={
+                        editingId
+                          ? transactions.find((t) => t.id === editingId)
+                              ?.description ?? ""
+                          : ""
+                      }
+                    />
+                  </div>
+                  <Button type="submit" className="w-full">
+                    {editingId ? "Update" : "Add"} Transaction
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
-
         {/* High-level summary for current filters */}
         <div className="grid gap-4 md:grid-cols-3">
           <StatsCard
             title="Total Income"
-            value={formatCurrency(totals.income)}
+            value={formatCurrency(summary.income)}
             icon={ArrowUpCircle}
             color="text-green-600"
           />
           <StatsCard
             title="Total Expense"
-            value={formatCurrency(totals.expense)}
+            value={formatCurrency(summary.expense)}
             icon={ArrowDownCircle}
             color="text-red-600"
           />
@@ -361,21 +423,30 @@ export default function TransactionsPage() {
             <Button
               size="sm"
               variant={filterType === "all" ? "default" : "outline"}
-              onClick={() => setFilterType("all")}
+              onClick={() => {
+                setFilterType("all");
+                setPage(1);
+              }}
             >
               All
             </Button>
             <Button
               size="sm"
               variant={filterType === "INCOME" ? "default" : "outline"}
-              onClick={() => setFilterType("INCOME")}
+              onClick={() => {
+                setFilterType("INCOME");
+                setPage(1);
+              }}
             >
               Income
             </Button>
             <Button
               size="sm"
               variant={filterType === "EXPENSE" ? "default" : "outline"}
-              onClick={() => setFilterType("EXPENSE")}
+              onClick={() => {
+                setFilterType("EXPENSE");
+                setPage(1);
+              }}
             >
               Expenses
             </Button>
@@ -384,7 +455,10 @@ export default function TransactionsPage() {
           <div className="flex flex-wrap gap-2">
             <Select
               value={categoryFilter}
-              onValueChange={setCategoryFilter}
+              onValueChange={(value) => {
+                setCategoryFilter(value);
+                setPage(1);
+              }}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="All categories" />
@@ -402,13 +476,19 @@ export default function TransactionsPage() {
             <Input
               type="date"
               value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
+                setPage(1);
+              }}
               className="w-[150px]"
             />
             <Input
               type="date"
               value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
+              onChange={(e) => {
+                setDateTo(e.target.value);
+                setPage(1);
+              }}
               className="w-[150px]"
             />
             <Input
@@ -427,92 +507,135 @@ export default function TransactionsPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="py-12 text-center text-muted-foreground">Loading...</div>
+              <div className="py-12 text-center text-muted-foreground">
+                Loading...
+              </div>
             ) : filteredTransactions.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTransactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell>
-                        {format(new Date(transaction.date), "MMM dd, yyyy HH:mm")}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {transaction.description || transaction.category.name}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          style={{ borderColor: transaction.category.color }}
-                        >
-                          {transaction.category.name}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            transaction.type === "INCOME"
-                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                          }
-                        >
-                          {transaction.type === "INCOME" ? "Income" : "Expense"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {transaction.type === "INCOME" ? "+" : "-"}
-                        {formatCurrency(transaction.amount)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Edit transaction"
-                            onClick={() => {
-                              setEditingId(transaction.id)
-                              setDialogOpen(true)
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Delete transaction"
-                            onClick={() => handleDelete(transaction.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-                <TableCaption>
-                  Showing {filteredTransactions.length} transaction
-                  {filteredTransactions.length === 1 ? "" : "s"} for the
-                  selected filters.
-                </TableCaption>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTransactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell>
+                          {format(
+                            new Date(transaction.date),
+                            "MMM dd, yyyy HH:mm"
+                          )}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {transaction.description || transaction.category.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            style={{ borderColor: transaction.category.color }}
+                          >
+                            {transaction.category.name}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              transaction.type === "INCOME"
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                                : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                            }
+                          >
+                            {transaction.type === "INCOME"
+                              ? "Income"
+                              : "Expense"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {transaction.type === "INCOME" ? "+" : "-"}
+                          {formatCurrency(transaction.amount)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Edit transaction"
+                              onClick={() => {
+                                setEditingId(transaction.id);
+                                setDialogOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Delete transaction"
+                              onClick={() => handleDelete(transaction.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableCaption>
+                    Showing {filteredTransactions.length} transaction
+                    {filteredTransactions.length === 1 ? "" : "s"} on this page
+                    {pagination?.total
+                      ? ` out of ${pagination.total} total for the selected filters.`
+                      : "."}
+                  </TableCaption>
+                </Table>
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Page {pagination?.page ?? 1} of{" "}
+                    {pagination?.totalPages ?? 1}
+                  </p>
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!pagination || pagination.page <= 1}
+                      onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={
+                        !pagination || pagination.page >= pagination.totalPages
+                      }
+                      onClick={() =>
+                        setPage((prev) =>
+                          pagination
+                            ? Math.min(pagination.totalPages, prev + 1)
+                            : prev + 1
+                        )
+                      }
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </>
             ) : (
               <div className="py-12 text-center text-muted-foreground">
-                No transactions found for the selected filters. Try adjusting the
-                date range or category, or add your first transaction.
+                No transactions found for the selected filters. Try adjusting
+                the date range or category, or add your first transaction.
               </div>
             )}
           </CardContent>
         </Card>
       </main>
     </div>
-  )
+  );
 }
