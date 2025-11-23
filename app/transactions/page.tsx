@@ -350,7 +350,7 @@ export default function TransactionsPage() {
                       <SelectTrigger>
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent searchable searchPlaceholder="Search category...">
                         {categories.map((cat) => (
                           <SelectItem key={cat.id} value={cat.id}>
                             {cat.name} ({cat.type})
@@ -474,7 +474,7 @@ export default function TransactionsPage() {
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="All categories" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent searchable searchPlaceholder="Search categories...">
                 <SelectItem value="all">All categories</SelectItem>
                 {categories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>

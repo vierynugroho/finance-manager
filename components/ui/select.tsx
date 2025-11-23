@@ -5,6 +5,7 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { Input } from "@/components/ui/input"
 
 function Select({
   ...props
@@ -50,13 +51,38 @@ function SelectTrigger({
   )
 }
 
+type SelectContentProps = React.ComponentProps<typeof SelectPrimitive.Content> & {
+  searchable?: boolean
+  searchPlaceholder?: string
+  emptyMessage?: string
+}
+
 function SelectContent({
   className,
   children,
   position = "popper",
   align = "center",
+  searchable = false,
+  searchPlaceholder = "Search...",
+  emptyMessage = "No results found.",
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Content>) {
+}: SelectContentProps) {
+  const [searchTerm, setSearchTerm] = React.useState("")
+
+  const filteredChildren = React.useMemo(
+    () =>
+      searchable && searchTerm
+        ? filterSelectChildren(children, searchTerm)
+        : children,
+    [children, searchTerm, searchable]
+  )
+
+  const hasResults = React.useMemo(() => {
+    if (!searchable || !searchTerm) return true
+    const arr = React.Children.toArray(filteredChildren)
+    return arr.length > 0
+  }, [filteredChildren, searchable, searchTerm])
+
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
@@ -72,6 +98,17 @@ function SelectContent({
         {...props}
       >
         <SelectScrollUpButton />
+        {searchable && (
+          <div className="border-b p-1">
+            <Input
+              autoFocus
+              placeholder={searchPlaceholder}
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="h-8 px-2 text-xs"
+            />
+          </div>
+        )}
         <SelectPrimitive.Viewport
           className={cn(
             "p-1",
@@ -79,7 +116,13 @@ function SelectContent({
               "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"
           )}
         >
-          {children}
+          {hasResults ? (
+            filteredChildren
+          ) : (
+            <div className="px-2 py-1.5 text-xs text-muted-foreground">
+              {emptyMessage}
+            </div>
+          )}
         </SelectPrimitive.Viewport>
         <SelectScrollDownButton />
       </SelectPrimitive.Content>
@@ -135,6 +178,63 @@ function SelectSeparator({
       {...props}
     />
   )
+}
+
+function getTextFromReactNode(node: React.ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") {
+    return String(node)
+  }
+
+  if (Array.isArray(node)) {
+    return node.map(getTextFromReactNode).join("")
+  }
+
+  if (React.isValidElement(node)) {
+    return getTextFromReactNode(node.props.children)
+  }
+
+  return ""
+}
+
+function filterSelectChildren(
+  children: React.ReactNode,
+  searchTerm: string
+): React.ReactNode {
+  const query = searchTerm.toLowerCase().trim()
+  if (!query) return children
+
+  const filter = (nodes: React.ReactNode): React.ReactNode => {
+    const result = React.Children.toArray(nodes)
+      .map((child) => {
+        if (!React.isValidElement(child)) return null
+
+        // Direct SelectItem: match by its text content
+        if (child.type === SelectItem) {
+          const label = getTextFromReactNode(child.props.children).toLowerCase()
+          return label.includes(query) ? child : null
+        }
+
+        // Recurse into groups/labels or any wrapper that has children
+        if (child.props && child.props.children) {
+          const filtered = filter(child.props.children)
+
+          const hasChildren = Array.isArray(filtered)
+            ? filtered.length > 0
+            : !!filtered
+
+          return hasChildren
+            ? React.cloneElement(child, { ...child.props }, filtered)
+            : null
+        }
+
+        return child
+      })
+      .filter(Boolean)
+
+    return result.length > 0 ? result : null
+  }
+
+  return filter(children)
 }
 
 function SelectScrollUpButton({
