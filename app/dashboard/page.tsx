@@ -268,30 +268,6 @@ export default function DashboardPage() {
                     />
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 pt-2">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Recent transactions per page
-                  </p>
-                  <Select
-                    value={String(recentLimit)}
-                    onValueChange={(value) => {
-                      const next = Number(value);
-                      setRecentLimit(next);
-                      setRecentPage(1);
-                    }}
-                  >
-                    <SelectTrigger className="h-8 w-[80px] text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[5, 10, 15, 20, 25, 31].map((size) => (
-                        <SelectItem key={size} value={String(size)}>
-                          {size}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </CardContent>
             </Card>
 
@@ -419,7 +395,33 @@ export default function DashboardPage() {
             {/* Recent Transactions */}
             <Card>
               <CardHeader>
-                <CardTitle>Recent Transactions</CardTitle>
+                <div className="flex justify-between mx-2 items-center">
+                  <CardTitle>Recent Transactions</CardTitle>
+                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Recent transactions per page
+                    </p>
+                    <Select
+                      value={String(recentLimit)}
+                      onValueChange={(value) => {
+                        const next = Number(value);
+                        setRecentLimit(next);
+                        setRecentPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-[80px] text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[5, 10, 15, 20, 25, 31].map((size) => (
+                          <SelectItem key={size} value={String(size)}>
+                            {size}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {stats.recentTransactions.length > 0 ? (
