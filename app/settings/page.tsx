@@ -48,9 +48,7 @@ export default function SettingsPage() {
               <User className="h-5 w-5" />
               Profile Information
             </CardTitle>
-            <CardDescription>
-              Update your personal information
-            </CardDescription>
+            <CardDescription>Update your personal information</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -92,7 +90,8 @@ export default function SettingsPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Used to format amounts across the app. Data is still stored in the same base currency.
+                  Used to format amounts across the app. Data is still stored in
+                  the same base currency.
                 </p>
               </div>
               {message && (
@@ -114,7 +113,8 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Use the theme toggle in the navigation bar to switch between light and dark modes.
+              Use the theme toggle in the navigation bar to switch between light
+              and dark modes.
             </p>
           </CardContent>
         </Card>
@@ -122,9 +122,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-red-600">Danger Zone</CardTitle>
-            <CardDescription>
-              Irreversible actions
-            </CardDescription>
+            <CardDescription>Irreversible actions</CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="destructive" disabled>
@@ -135,7 +133,13 @@ export default function SettingsPage() {
             </p>
           </CardContent>
         </Card>
+
+        {/* copyright by viery nugroho - vnonymous */}
+        <footer className="text-center text-xs text-muted-foreground py-4">
+          &copy; {new Date().getFullYear()} Finance Manager. All rights
+          reserved. Developed by Viery Nugroho - Vnonymous.
+        </footer>
       </main>
     </div>
-  )
+  );
 }
