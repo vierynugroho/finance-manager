@@ -84,6 +84,7 @@ export default function TransactionsPage() {
   const [limit, setLimit] = useState<number>(10);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [summary, setSummary] = useState<Summary>({ income: 0, expense: 0 });
+  const [formType, setFormType] = useState<"INCOME" | "EXPENSE" | null>(null)
 
   // Prefill amount when editing an existing transaction
   useEffect(() => {
@@ -267,6 +268,11 @@ export default function TransactionsPage() {
 
   const balance = summary.income - summary.expense;
 
+  const filteredFormCategories = useMemo(
+    () => (formType ? categories.filter((cat) => cat.type === formType) : []),
+    [categories, formType]
+  )
+
   const filteredTransactions = useMemo(() => {
     return transactions.filter((transaction) => {
       const matchesSearch =
@@ -305,7 +311,10 @@ export default function TransactionsPage() {
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button
-                  onClick={() => setEditingId(null)}
+                  onClick={() => {
+                    setEditingId(null)
+                    setFormType(null)
+                  }}
                   className="w-full sm:w-auto cursor-pointer"
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -329,10 +338,9 @@ export default function TransactionsPage() {
                     <Select
                       name="type"
                       required
-                      defaultValue={
-                        editingId
-                          ? transactions.find((t) => t.id === editingId)?.type
-                          : undefined
+                      value={formType ?? undefined}
+                      onValueChange={(value) =>
+                        setFormType(value as "INCOME" | "EXPENSE")
                       }
                     >
                       <SelectTrigger>
@@ -367,8 +375,10 @@ export default function TransactionsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="categoryId">Category</Label>
                     <Select
+                      key={formType ?? "no-type"}
                       name="categoryId"
                       required
+                      disabled={!formType}
                       defaultValue={
                         editingId
                           ? transactions.find((t) => t.id === editingId)
@@ -383,11 +393,17 @@ export default function TransactionsPage() {
                         searchable
                         searchPlaceholder="Search category..."
                       >
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name} ({cat.type})
-                          </SelectItem>
-                        ))}
+                        {formType ? (
+                          filteredFormCategories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="px-2 py-1 text-xs text-muted-foreground">
+                            Select a type first
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -617,6 +633,7 @@ export default function TransactionsPage() {
                               aria-label="Edit transaction"
                               onClick={() => {
                                 setEditingId(transaction.id);
+                                setFormType(transaction.type);
                                 setDialogOpen(true);
                               }}
                             >
