@@ -84,14 +84,21 @@ export async function GET(req: NextRequest) {
 
         const subject = `Finance Manager - Laporan Bulan ${monthLabel}`;
 
+        const formatRupiah = (amount: number) => {
+          return new Intl.NumberFormat("id-ID", {
+            style: "currency",
+            currency: "IDR",
+          }).format(amount);
+        };
+
         const text = [
           `Halo ${user.name || user.email},`,
           "",
           `Berikut ringkasan transaksi kamu untuk bulan ${monthLabel}:`,
           "",
-          `- Total Pemasukan: ${income.toFixed(2)}`,
-          `- Total Pengeluaran: ${expense.toFixed(2)}`,
-          `- Saldo (Pemasukan - Pengeluaran): ${balance.toFixed(2)}`,
+          `- Total Pemasukan: ${formatRupiah(income)}`,
+          `- Total Pengeluaran: ${formatRupiah(expense)}`,
+          `- Saldo (Pemasukan - Pengeluaran): ${formatRupiah(balance)}`,
           `- Jumlah Transaksi: ${txCount}`,
           "",
           "Terima kasih telah menggunakan Finance Manager.",
@@ -101,9 +108,13 @@ export async function GET(req: NextRequest) {
           <p>Halo ${user.name || user.email},</p>
           <p>Berikut ringkasan transaksi kamu untuk bulan <strong>${monthLabel}</strong>:</p>
           <ul>
-            <li>Total Pemasukan: <strong>${income.toFixed(2)}</strong></li>
-            <li>Total Pengeluaran: <strong>${expense.toFixed(2)}</strong></li>
-            <li>Saldo (Pemasukan - Pengeluaran): <strong>${balance.toFixed(2)}</strong></li>
+            <li>Total Pemasukan: <strong>${formatRupiah(income)}</strong></li>
+            <li>Total Pengeluaran: <strong>${formatRupiah(
+              expense
+            )}</strong></li>
+            <li>Saldo (Pemasukan - Pengeluaran): <strong>${formatRupiah(
+              balance
+            )}</strong></li>
             <li>Jumlah Transaksi: <strong>${txCount}</strong></li>
           </ul>
           <p>Terima kasih telah menggunakan Finance Manager.</p>
